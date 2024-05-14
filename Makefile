@@ -1,15 +1,3 @@
-linter-autofix:
-	docker compose run --rm php-fpm ./vendor/bin/php-cs-fixer fix -v --using-cache=no
-	docker compose run --rm php-fpm ./vendor/bin/rector
-
-analyze:
-	docker compose run --rm php-fpm ./vendor/bin/phplint
-	docker compose run --rm php-fpm ./vendor/bin/php-cs-fixer fix --dry-run --diff --using-cache=no
-	docker compose run --rm php-fpm ./vendor/bin/rector --dry-run
-	docker compose run --rm php-fpm ./vendor/bin/phpstan --memory-limit=-1
-	docker compose run --rm php-fpm ./vendor/bin/psalm --no-cache $(ARGS)
-	docker compose run --rm php-fpm ./vendor/bin/phpunit
-
 build: docker-build
 up: docker-up
 down: docker-down
