@@ -17,7 +17,6 @@ class PaginationMaker implements PaginationMakerInterface
     {
         $all = $request->query->all();
         if (isset($all['page'])) {
-            /** @var mixed $paginationRaw */
             $paginationRaw = $all['page'];
         } else {
             $paginationRaw = null;

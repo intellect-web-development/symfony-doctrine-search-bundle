@@ -23,7 +23,7 @@ class Query
         string $targetEntityClass,
         array $hints = [],
         bool $eager = false,
-        Filters $filters = null
+        ?Filters $filters = null
     ) {
         $this->targetEntityClass = $targetEntityClass;
         $this->hints = $hints;

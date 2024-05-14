@@ -45,7 +45,7 @@ class Fetcher
         $idPropertyName = current($context->entityClassMetadata->identifier);
         $aggregateAlias = self::AGGREGATE_ALIAS;
 
-        return (clone $context->queryBuilder)
+        return (int) (clone $context->queryBuilder)
             ->select("count(distinct {$aggregateAlias}.{$idPropertyName})")
             ->getQuery()
             ->getSingleScalarResult();

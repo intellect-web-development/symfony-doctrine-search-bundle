@@ -32,7 +32,6 @@ class FiltersMaker implements FiltersMakerInterface
                 continue;
             }
 
-            /** @var mixed $value */
             $value = current($filterExpression);
 
             if (!self::valueIsValid($value)) {

@@ -20,7 +20,7 @@ class Presenter
     public function present(
         mixed $data,
         array $headers = [],
-        OutputFormat $outputFormat = null,
+        ?OutputFormat $outputFormat = null,
         int $status = 200,
     ): Response {
         if (null === $outputFormat) {

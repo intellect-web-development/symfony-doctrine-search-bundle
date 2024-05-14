@@ -26,9 +26,9 @@ class Query
     public function __construct(
         string $targetEntityClass,
         array $hints = [],
-        Pagination $pagination = null,
-        Filters $filters = null,
-        Sorts $sorts = null,
+        ?Pagination $pagination = null,
+        ?Filters $filters = null,
+        ?Sorts $sorts = null,
         bool $eager = true,
     ) {
         $this->targetEntityClass = $targetEntityClass;
