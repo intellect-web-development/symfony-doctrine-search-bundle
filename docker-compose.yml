@@ -1,0 +1,9 @@
+version: "3.7"
+
+services:
+  php-fpm:
+    build:
+      context: docker
+      dockerfile: development/php-fpm/Dockerfile
+    volumes:
+      - ./:/app
