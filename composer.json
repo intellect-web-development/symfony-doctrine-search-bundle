@@ -1,0 +1,43 @@
+{
+    "name": "intellect-web-development/symfony-doctrine-search-bundle",
+    "description": "Library for searching through your doctrine entities via the HTTP API",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/intellect-web-development/symfony-doctrine-search-bundle/issues"
+    },
+    "authors": [
+        {
+            "name": "alexander.erin",
+            "email": "sanyaerin@mail.ru"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "IWD\\SymfonyDoctrineSearch\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.2",
+        "ext-mbstring": "*",
+        "symfony/config": "*",
+        "symfony/dependency-injection": "*",
+        "symfony/http-kernel": "*",
+        "symfony/validator": "*",
+        "symfony/serializer": "*",
+        "intellect-web-development/symfony-entry-contract-bundle": "^1.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.14",
+        "phpstan/phpstan": "^1.9",
+        "phpunit/phpunit": "^9.5",
+        "zircote/swagger-php": "^3.2",
+        "overtrue/phplint": "^3.0",
+        "roave/security-advisories": "dev-latest",
+        "vimeo/psalm": "^4.6",
+        "phpmetrics/phpmetrics": "^2.7",
+        "symfony/security-bundle": "^6.1",
+        "doctrine/orm": "^2.13",
+        "psalm/plugin-symfony": "^4.0"
+    }
+}
