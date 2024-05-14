@@ -8,29 +8,17 @@ services:
         exclude:
             - '../../../src/DependencyInjection/'
 
-    IWD\SymfonyDoctrineSearch\Service\Validator\Interfaces\ValidatorService:
-        class: IWD\SymfonyDoctrineSearch\Service\Validator\Implementation\ValidatorService
-
-    IWD\SymfonyDoctrineSearch\Core\Dto\Locale:
-        arguments: [ '%locale%' ]
-
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\BaseFilterStrategyMakerInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\BaseFilterStrategyMaker
 
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\FiltersMakerInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\FiltersMaker
 
-    IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\LocaleMakerInterface:
-        class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\LocaleMaker
-
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\PaginationMakerInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\PaginationMaker
 
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\SortsMakerInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\SortsMaker
-
-    IWD\SymfonyDoctrineSearch\Service\Factory\Interfaces\InputContractFactoryInterface:
-        class: IWD\SymfonyDoctrineSearch\Service\Factory\Implementations\InputContractFactory
 
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\RequestParserInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\RequestParser

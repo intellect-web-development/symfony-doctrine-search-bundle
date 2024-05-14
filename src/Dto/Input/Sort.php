@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IWD\SymfonyDoctrineSearch\Dto\Input;
 
-use IWD\SymfonyDoctrineSearch\Exception\PresentationBundleException;
+use IWD\SymfonyDoctrineSearch\Exception\SymfonyDoctrineSearchException;
 
 class Sort
 {
@@ -19,7 +19,7 @@ class Sort
         $this->field = $field;
 
         if (!in_array($direction, [self::SORT_ASC, self::SORT_DESC])) {
-            throw new PresentationBundleException('Sort direction should be ASC or DESC only', 400);
+            throw new SymfonyDoctrineSearchException('Sort direction should be ASC or DESC only', 400);
         }
 
         $this->direction = $direction;

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6a24b9a82840bc79eeec6de434e6f38f",
+    "content-hash": "9b9746e96fdebc98821b1ea4c5649a64",
     "packages": [
         {
             "name": "intellect-web-development/symfony-entry-contract-bundle",
@@ -215,6 +215,67 @@
                 "source": "https://github.com/php-fig/log/tree/2.0.0"
             },
             "time": "2021-07-14T16:41:46+00:00"
+        },
+        {
+            "name": "symfony-bundles/bundle-dependency",
+            "version": "v1.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony-bundles/bundle-dependency.git",
+                "reference": "9d86d2bbed4dd01ef04b76a5faab67a59ef5e760"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony-bundles/bundle-dependency/zipball/9d86d2bbed4dd01ef04b76a5faab67a59ef5e760",
+                "reference": "9d86d2bbed4dd01ef04b76a5faab67a59ef5e760",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "doctrine/annotations": "~1.1",
+                "phpunit/php-code-coverage": "^3.3.0|^4.0",
+                "phpunit/phpunit": "^5.3",
+                "symfony/framework-bundle": "~2.7|~3.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "SymfonyBundles\\BundleDependency\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Dmitry Khaperets",
+                    "email": "khaperets@gmail.com"
+                }
+            ],
+            "description": "Symfony BundleDependency Component",
+            "homepage": "https://github.com/symfony-bundles/bundle-dependency",
+            "keywords": [
+                "bundle",
+                "dependencies",
+                "dependency",
+                "symfony"
+            ],
+            "support": {
+                "issues": "https://github.com/symfony-bundles/bundle-dependency/issues",
+                "source": "https://github.com/symfony-bundles/bundle-dependency/tree/master"
+            },
+            "time": "2018-02-21T17:57:48+00:00"
         },
         {
             "name": "symfony/config",
