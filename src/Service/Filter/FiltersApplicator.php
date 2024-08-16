@@ -38,11 +38,17 @@ class FiltersApplicator
 
         switch ($filter->mode) {
             case FilterMode::NotIn:
+                if (isset($value) && !is_array($value)) {
+                    $value = [$value];
+                }
                 if (isset($value) && is_array($value)) {
                     $appSqlBuilder->notIn($aliasPath, $value, $filter->strategy);
                 }
                 break;
             case FilterMode::In:
+                if (isset($value) && !is_array($value)) {
+                    $value = [$value];
+                }
                 if (isset($value) && is_array($value)) {
                     $appSqlBuilder->in($aliasPath, $value, $filter->strategy);
                 }
