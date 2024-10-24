@@ -10,36 +10,36 @@ use OpenApi\Attributes as OA;
 class SearchQuery
 {
     #[OA\Property(
-        property: "filter",
-        type: "object",
+        property: 'filter',
+        type: 'object',
         example: [
-            "propertyName_1" => ["like" => "value_1"],
-            "propertyName_2" => ["eq" => "value_2"]
+            'propertyName_1' => ['like' => 'value_1'],
+            'propertyName_2' => ['eq' => 'value_2'],
         ]
     )]
     public Filters $filters;
 
     #[OA\Property(
-        property: "sort",
-        type: "string",
-        example: "-id"
+        property: 'sort',
+        type: 'string',
+        example: '-id'
     )]
     public Sorts $sorts;
 
     #[OA\Property(
-        property: "page",
-        type: "object",
+        property: 'page',
+        type: 'object',
         example: [
-            "number" => 1,
-            "size" => 20
+            'number' => 1,
+            'size' => 20,
         ]
     )]
     public Pagination $pagination;
 
     #[OA\Property(
-        property: "strategy",
-        type: "string",
-        example: "and/or"
+        property: 'strategy',
+        type: 'string',
+        example: 'and/or'
     )]
     public FilterStrategy $baseFilterStrategy;
 
