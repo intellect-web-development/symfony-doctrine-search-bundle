@@ -68,6 +68,7 @@ filter[emails.email][in][]='0791d11b6a952a3804e7cb8a220d0a9b@mail.ru'
 filter[emails.email][in][]='0891d11b6a952a3804e7cb8a220d0a9b@mail.ru'
 ```
 
+[//]: # (todo: переделать под атрибуты)
 ## Примеры кода:
 ### Query:
 #### Определение

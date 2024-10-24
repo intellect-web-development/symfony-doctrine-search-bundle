@@ -32,7 +32,7 @@
         "friendsofphp/php-cs-fixer": "^3.14",
         "phpstan/phpstan": "^1.9",
         "phpunit/phpunit": "^9.5",
-        "zircote/swagger-php": "^3.2",
+        "zircote/swagger-php": "^4.11",
         "overtrue/phplint": "^3.0",
         "roave/security-advisories": "dev-latest",
         "vimeo/psalm": "^4.6",
