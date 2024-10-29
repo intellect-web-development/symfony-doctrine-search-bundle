@@ -22,6 +22,10 @@ class Bus
                 ->addFilters($actionContext->filters),
         );
 
+        // todo: можно попробовать решить задачу в 2 запроса:
+        // 1 - получить count
+        // 2 - сразу получить сущности без получения промужуточного "ids" путем подставления в итоговый запрос
+        // with target_entities as (select {запрос на получение ids}) ... select ... in(select ... where in (target_entities))
         $ids = $this->fetcher->searchEntityIds(
             $this->fetcher->createContext($actionContext->targetEntityClass)
                 ->addFilters($actionContext->filters)
