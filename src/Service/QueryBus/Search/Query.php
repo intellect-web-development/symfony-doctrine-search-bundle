@@ -32,7 +32,7 @@ class Query
         ?Pagination $pagination = null,
         ?Filters $filters = null,
         ?Sorts $sorts = null,
-        ?FilterStrategy $filterStrategy = FilterStrategy::And,
+        ?FilterStrategy $filterStrategy = null,
         bool $eager = true,
     ) {
         $this->targetEntityClass = $targetEntityClass;
@@ -41,13 +41,11 @@ class Query
         $this->sorts = $sorts ?? new Sorts();
         $this->eager = $eager;
         $this->hints = $hints;
-        $this->filterStrategy = $filterStrategy;
+        $this->filterStrategy = $filterStrategy ?? FilterStrategy::And;
     }
 
     /**
      * @param class-string $targetEntityClass
-     * @param SearchQuery $searchQuery
-     * @return self
      */
     public static function fromSearchQuery(
         string $targetEntityClass,

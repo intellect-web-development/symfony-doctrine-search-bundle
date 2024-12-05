@@ -10,17 +10,17 @@ use IWD\SymfonyDoctrineSearch\Dto\Output\OutputPagination;
 use IWD\SymfonyDoctrineSearch\Dto\Output\SearchResult;
 use IWD\SymfonyDoctrineSearch\Service\Filter\Fetcher;
 
-class Bus
+readonly class Bus
 {
     public function __construct(
-        private readonly Fetcher $fetcher,
-        private readonly EntityManagerInterface $em,
+        private Fetcher $fetcher,
+        private EntityManagerInterface $em,
     ) {
     }
 
     public function query(Query $actionContext): SearchResult
     {
-        if ($actionContext->filterStrategy === FilterStrategy::Or) {
+        if (FilterStrategy::Or === $actionContext->filterStrategy) {
             $classMetadata = $this->em->getClassMetadata($actionContext->targetEntityClass);
             foreach ($actionContext->filters->toArray() as $filter) {
                 if (!isset($classMetadata->fieldMappings[$filter->property])) {
@@ -32,7 +32,7 @@ class Bus
                  * В некоторых базах данных возникают проблемы, если по полям где хранятся ID начинать искать текстовые данные,
                  * по этому в этом случае такой фильтр не будет применен.
                  */
-                if (isset($propertyMeta['id']) && $propertyMeta['id'] === true && (string) $filter->value !== (string) (int) $filter->value) {
+                if (isset($propertyMeta['id']) && true === $propertyMeta['id'] && (string) $filter->value !== (string) (int) $filter->value) {
                     $actionContext->filters->block($filter);
                     continue;
                 }
