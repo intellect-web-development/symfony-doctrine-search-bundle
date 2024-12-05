@@ -7,6 +7,7 @@ namespace IWD\SymfonyDoctrineSearch\Service\QueryBus\Search;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
 use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Pagination;
+use IWD\SymfonyDoctrineSearch\Dto\Input\SearchQuery;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Sorts;
 
 class Query
@@ -41,5 +42,23 @@ class Query
         $this->eager = $eager;
         $this->hints = $hints;
         $this->filterStrategy = $filterStrategy;
+    }
+
+    /**
+     * @param class-string $targetEntityClass
+     * @param SearchQuery $searchQuery
+     * @return self
+     */
+    public static function fromSearchQuery(
+        string $targetEntityClass,
+        SearchQuery $searchQuery
+    ): self {
+        return new self(
+            targetEntityClass: $targetEntityClass,
+            pagination: $searchQuery->pagination,
+            filters: $searchQuery->filters,
+            sorts: $searchQuery->sorts,
+            filterStrategy: $searchQuery->baseFilterStrategy,
+        );
     }
 }
