@@ -7,6 +7,7 @@ namespace IWD\SymfonyDoctrineSearch\Service\Filter;
 use DateTime;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Filter;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
+use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 
 class FiltersApplicator
 {

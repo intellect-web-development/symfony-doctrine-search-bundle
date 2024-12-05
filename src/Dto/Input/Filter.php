@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace IWD\SymfonyDoctrineSearch\Dto\Input;
 
 use IWD\SymfonyDoctrineSearch\Service\Filter\FilterMode;
-use IWD\SymfonyDoctrineSearch\Service\Filter\FilterStrategy;
 
 class Filter
 {

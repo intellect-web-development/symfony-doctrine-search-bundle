@@ -14,13 +14,13 @@ use IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\FiltersMakerInter
 use IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\PaginationMakerInterface;
 use IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\SortsMakerInterface;
 
-class SearchQueryResolver implements ValueResolverInterface
+readonly class SearchQueryResolver implements ValueResolverInterface
 {
     public function __construct(
-        private readonly FiltersMakerInterface $filtersMaker,
-        private readonly PaginationMakerInterface $paginationMaker,
-        private readonly SortsMakerInterface $sortsMaker,
-        private readonly BaseFilterStrategyMakerInterface $baseFilterStrategyMaker,
+        private FiltersMakerInterface $filtersMaker,
+        private PaginationMakerInterface $paginationMaker,
+        private SortsMakerInterface $sortsMaker,
+        private BaseFilterStrategyMakerInterface $baseFilterStrategyMaker,
     ) {
     }
 
@@ -37,6 +37,7 @@ class SearchQueryResolver implements ValueResolverInterface
             baseFilterStrategy: $this->baseFilterStrategyMaker::make($request),
         );
 
+        // todo: стратегия должна быть глобальной в рамках запроса, это убрать
         foreach ($searchQuery->filters->toArray() as $filter) {
             $filter->strategy = $searchQuery->baseFilterStrategy;
         }

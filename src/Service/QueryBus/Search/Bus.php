@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IWD\SymfonyDoctrineSearch\Service\QueryBus\Search;
 
+use Doctrine\ORM\EntityManagerInterface;
+use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 use IWD\SymfonyDoctrineSearch\Dto\Output\OutputPagination;
 use IWD\SymfonyDoctrineSearch\Dto\Output\SearchResult;
 use IWD\SymfonyDoctrineSearch\Service\Filter\Fetcher;
@@ -11,12 +13,32 @@ use IWD\SymfonyDoctrineSearch\Service\Filter\Fetcher;
 class Bus
 {
     public function __construct(
-        private Fetcher $fetcher
+        private readonly Fetcher $fetcher,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
     public function query(Query $actionContext): SearchResult
     {
+        if ($actionContext->filterStrategy === FilterStrategy::Or) {
+            $classMetadata = $this->em->getClassMetadata($actionContext->targetEntityClass);
+            foreach ($actionContext->filters->toArray() as $filter) {
+                if (!isset($classMetadata->fieldMappings[$filter->property])) {
+                    $actionContext->filters->block($filter);
+                    continue;
+                }
+                $propertyMeta = $classMetadata->fieldMappings[$filter->property];
+                /**
+                 * В некоторых базах данных возникают проблемы, если по полям где хранятся ID начинать искать текстовые данные,
+                 * по этому в этом случае такой фильтр не будет применен.
+                 */
+                if (isset($propertyMeta['id']) && $propertyMeta['id'] === true && (string) $filter->value !== (string) (int) $filter->value) {
+                    $actionContext->filters->block($filter);
+                    continue;
+                }
+            }
+        }
+
         $count = $this->fetcher->count(
             $this->fetcher->createContext($actionContext->targetEntityClass)
                 ->addFilters($actionContext->filters),

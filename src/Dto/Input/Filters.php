@@ -41,7 +41,7 @@ class Filters
         }
     }
 
-    public function block(array $properties): void
+    public function blockByProperties(array $properties): void
     {
         $properties = array_map(static function (string $property) {
             return mb_strtolower($property);
@@ -49,6 +49,16 @@ class Filters
 
         foreach ($this->filters as $key => $filter) {
             if (in_array(mb_strtolower($filter->property), $properties, true)) {
+                $this->blocked[] = $filter;
+                unset($this->filters[$key]);
+            }
+        }
+    }
+
+    public function block(Filter $blockedFilter): void
+    {
+        foreach ($this->filters as $key => $filter) {
+            if ($blockedFilter === $filter) {
                 $this->blocked[] = $filter;
                 unset($this->filters[$key]);
             }

@@ -7,6 +7,7 @@ namespace IWD\SymfonyDoctrineSearch\Service\Filter;
 use DateTimeInterface;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\QueryBuilder;
+use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Pagination;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Sort;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Sorts;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IWD\SymfonyDoctrineSearch\Service\QueryBus\Search;
 
 use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
+use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Pagination;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Sorts;
 
@@ -15,6 +16,7 @@ class Query
     public Pagination $pagination;
     public Filters $filters;
     public Sorts $sorts;
+    public FilterStrategy $filterStrategy;
     public bool $eager;
     public array $hints;
 
@@ -29,6 +31,7 @@ class Query
         ?Pagination $pagination = null,
         ?Filters $filters = null,
         ?Sorts $sorts = null,
+        ?FilterStrategy $filterStrategy = FilterStrategy::And,
         bool $eager = true,
     ) {
         $this->targetEntityClass = $targetEntityClass;
@@ -37,5 +40,6 @@ class Query
         $this->sorts = $sorts ?? new Sorts();
         $this->eager = $eager;
         $this->hints = $hints;
+        $this->filterStrategy = $filterStrategy;
     }
 }

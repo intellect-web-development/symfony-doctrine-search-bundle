@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IWD\SymfonyDoctrineSearch\Dto\Input;
 
-use IWD\SymfonyDoctrineSearch\Service\Filter\FilterStrategy;
 use OpenApi\Attributes as OA;
 
 class SearchQuery

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces;
 
-use IWD\SymfonyDoctrineSearch\Service\Filter\FilterStrategy;
+use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
 use Symfony\Component\HttpFoundation\Request;
 
 interface BaseFilterStrategyMakerInterface
