@@ -33,6 +33,9 @@ readonly class Bus
                  * по этому в этом случае такой фильтр не будет применен.
                  */
                 if (isset($propertyMeta['id']) && true === $propertyMeta['id'] && (string) $filter->value !== (string) (int) $filter->value) {
+                    // todo: это условие сработает только на int-id, на uuid-id не сработает, нужно добавлять доп. проверку,
+                    //  а еще лучше внедрить что-то типо "AutoDisableFilterRule", чтобы при определенных ситуациях фильтр отключался.
+                    //  И это можно было конфигурировать на стороне приложения, а не бандла, по паттерну стратегии + цепочка обязанностей (isSupport)
                     $actionContext->filters->block($filter);
                     continue;
                 }
