@@ -231,9 +231,9 @@ class Fetcher
                 return $entity[$idPropertyName];
             },
             $context->queryBuilder
-//            ->select("{$context->aggregateAlias}.{$idPropertyName}")
-            ->getQuery()
-            ->getResult(AbstractQuery::HYDRATE_ARRAY)
+                ->select("distinct {$context->aggregateAlias}.{$idPropertyName}")
+                ->getQuery()
+                ->getResult(AbstractQuery::HYDRATE_ARRAY)
         );
     }
 }
