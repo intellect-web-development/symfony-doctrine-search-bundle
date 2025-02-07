@@ -66,6 +66,23 @@ class Filters
     }
 
     /**
+     * @param string $propertyName
+     * @return Filter[]
+     */
+    public function getByProperty(string $propertyName): array
+    {
+        $result = [];
+
+        foreach ($this->filters as $filter) {
+            if ($propertyName === $filter->property) {
+                $result[] = $filter;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<string, string> $aliases
      */
     public function applyAliases(array $aliases): void
