@@ -59,7 +59,7 @@ readonly class Bus
         );
 
         $entities = $this->fetcher->getByIds(
-            context: ($this->fetcher->createContext($actionContext->targetEntityClass))->addFilters($actionContext->filters)->addSorts($actionContext->sorts),
+            context: ($this->fetcher->createContext($actionContext->targetEntityClass))->addFilters($actionContext->filters, false)->addSorts($actionContext->sorts),
             ids: $ids,
             eager: $actionContext->eager,
             hints: $actionContext->hints

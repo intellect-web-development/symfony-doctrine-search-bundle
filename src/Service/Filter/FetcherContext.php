@@ -184,7 +184,7 @@ class FetcherContext
         return $this;
     }
 
-    public function addFilters(Filters $filters): self
+    public function addFilters(Filters $filters, bool $withRelations = true): self
     {
         FiltersApplicator::applyMany(
             $this->fetchFiltersForEntity($filters),
@@ -193,27 +193,29 @@ class FetcherContext
             false
         );
 
-        $filtersForRelations = $this->fetchFiltersForRelations($filters);
-        foreach ($this->fetchJoinList($filtersForRelations) as $propertyPath) {
-            $explodePropertyPath = explode('.', $propertyPath);
-            for ($level = 1, $levelMax = count($explodePropertyPath); $level <= $levelMax; ++$level) {
-                $relationPath = Helper::makeRelationPath($explodePropertyPath, $level);
-                $path = Helper::makeAliasPathFromPropertyPath("$this->aggregateAlias.$relationPath");
-                $alias = Helper::pathToAlias($path);
+        if ($withRelations) {
+            $filtersForRelations = $this->fetchFiltersForRelations($filters);
+            foreach ($this->fetchJoinList($filtersForRelations) as $propertyPath) {
+                $explodePropertyPath = explode('.', $propertyPath);
+                for ($level = 1, $levelMax = count($explodePropertyPath); $level <= $levelMax; ++$level) {
+                    $relationPath = Helper::makeRelationPath($explodePropertyPath, $level);
+                    $path = Helper::makeAliasPathFromPropertyPath("$this->aggregateAlias.$relationPath");
+                    $alias = Helper::pathToAlias($path);
 
-                $this->queryBuilder->leftJoin($path, $alias);
+                    $this->queryBuilder->leftJoin($path, $alias);
+                }
             }
-        }
-        if (!empty($filtersForRelations->toArray())) {
-            $this->queryBuilder->distinct(true);
-        }
+            if (!empty($filtersForRelations->toArray())) {
+                $this->queryBuilder->distinct(true);
+            }
 
-        FiltersApplicator::applyMany(
-            $filtersForRelations,
-            $this->filterSqlBuilder,
-            $this->aggregateAlias,
-            true
-        );
+            FiltersApplicator::applyMany(
+                $filtersForRelations,
+                $this->filterSqlBuilder,
+                $this->aggregateAlias,
+                true
+            );
+        }
 
         return $this;
     }
