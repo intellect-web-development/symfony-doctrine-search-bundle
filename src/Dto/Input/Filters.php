@@ -66,7 +66,6 @@ class Filters
     }
 
     /**
-     * @param string $propertyName
      * @return Filter[]
      */
     public function getByProperty(string $propertyName): array
