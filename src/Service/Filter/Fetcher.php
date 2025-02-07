@@ -88,7 +88,7 @@ class Fetcher
         }
 
         $context->queryBuilder
-            ->where("$aggregateAlias.{$idPropertyName} IN (" . implode(',', $idsPrepared) . ')');
+            ->andWhere("$aggregateAlias.{$idPropertyName} IN (" . implode(',', $idsPrepared) . ')');
 
         if ($eager) {
             $this->addEagerQueryToRelations($context, $hints, $context->queryBuilder);
