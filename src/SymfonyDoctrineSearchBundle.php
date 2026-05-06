@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IWD\SymfonyDoctrineSearch;
 
 use IWD\SymfonyEntryContract\SymfonyEntryContractBundle;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use SymfonyBundles\BundleDependency\BundleDependency;
 
@@ -15,6 +16,11 @@ use SymfonyBundles\BundleDependency\BundleDependency;
 class SymfonyDoctrineSearchBundle extends Bundle
 {
     use BundleDependency;
+
+    public function build(ContainerBuilder $container): void
+    {
+        $this->registerBundleDependencies($container);
+    }
 
     public function getBundleDependencies(): array
     {

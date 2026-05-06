@@ -25,7 +25,7 @@
         "symfony/http-kernel": "*",
         "symfony/validator": "*",
         "symfony/serializer": "*",
-        "intellect-web-development/symfony-entry-contract-bundle": "^1.0",
+        "intellect-web-development/symfony-entry-contract-bundle": "*",
         "symfony-bundles/bundle-dependency": "^1.0"
     },
     "require-dev": {
