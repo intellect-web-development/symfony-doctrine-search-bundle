@@ -11,7 +11,7 @@ class Pagination
     private int $pageSize;
     private int $offset;
 
-    public function __construct(int $pageNumber = 1, int $pageSize = 1, int $maxSize = 500)
+    public function __construct(int $pageNumber = 1, int $pageSize = 1, int $maxSize = 5000)
     {
         if ($pageNumber < 1) {
             $pageNumber = 1;
