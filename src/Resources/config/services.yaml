@@ -22,3 +22,8 @@ services:
 
     IWD\SymfonyDoctrineSearch\Service\RequestParser\Interfaces\RequestParserInterface:
         class: IWD\SymfonyDoctrineSearch\Service\RequestParser\Implementations\RequestParser
+
+    IWD\SymfonyDoctrineSearch\Service\Filter\DefaultFilterHandler:
+        autoconfigure: false
+        tags:
+            - { name: 'iwd.symfony_doctrine_search.filter_handler', priority: -1000 }

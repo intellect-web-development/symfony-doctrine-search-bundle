@@ -4,135 +4,86 @@ declare(strict_types=1);
 
 namespace IWD\SymfonyDoctrineSearch\Service\Filter;
 
-use DateTime;
 use IWD\SymfonyDoctrineSearch\Dto\Input\Filter;
-use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
 use IWD\SymfonyDoctrineSearch\Dto\Input\FilterStrategy;
+use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
+use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
-class FiltersApplicator
+readonly class FiltersApplicator
 {
-    public static function applyMany(
+    /**
+     * @param iterable<FilterHandlerInterface> $handlers
+     */
+    public function __construct(
+        #[TaggedIterator('iwd.symfony_doctrine_search.filter_handler')]
+        private iterable $handlers,
+    ) {
+    }
+
+    public function applyMany(
         Filters $filters,
         FilterSqlBuilder $appSqlBuilder,
         string $fieldPrefix,
-        bool $isRelation
+        bool $isRelation,
+        ?FilterStrategy $compositeStrategy = null,
+        FilterStrategy $strategy = FilterStrategy::And
     ): void {
+        if (null !== $compositeStrategy) {
+            $this->applyComposite($filters, $appSqlBuilder, $fieldPrefix, $isRelation, $strategy, $compositeStrategy);
+
+            return;
+        }
+
         foreach ($filters->toArray() as $filter) {
-            self::apply($filter, $appSqlBuilder, $fieldPrefix, $isRelation);
+            $this->apply($filter, $appSqlBuilder, $fieldPrefix, $isRelation);
         }
     }
 
-    public static function apply(
+    public function apply(
         Filter $filter,
         FilterSqlBuilder $appSqlBuilder,
         string $fieldPrefix,
         bool $isRelation
     ): void {
-        if ($isRelation) {
-            $aliasPath = Helper::makeAliasPathFromPropertyPath("$fieldPrefix.$filter->property");
-        } else {
-            $aliasPath = "$fieldPrefix.$filter->property";
-        }
+        foreach ($this->handlers as $handler) {
+            if ($handler->supports($filter)) {
+                $handler->apply($filter, $appSqlBuilder, $fieldPrefix, $isRelation);
 
-        /** @var array|string|int|null $value */
-        $value = $filter->value;
-
-        switch ($filter->mode) {
-            case FilterMode::NotIn:
-                if (isset($value) && !is_array($value)) {
-                    $value = [$value];
-                }
-                if (isset($value) && is_array($value)) {
-                    $appSqlBuilder->notIn($aliasPath, $value, $filter->strategy);
-                }
-                break;
-            case FilterMode::In:
-                if (isset($value) && !is_array($value)) {
-                    $value = [$value];
-                }
-                if (isset($value) && is_array($value)) {
-                    $appSqlBuilder->in($aliasPath, $value, $filter->strategy);
-                }
-                break;
-            case FilterMode::Range:
-                if (isset($value) && is_string($value)) {
-                    self::rangeDecorator($appSqlBuilder, $value, $aliasPath, $filter->strategy);
-                }
-                break;
-            case FilterMode::IsNull:
-                $appSqlBuilder->isNull($aliasPath, $filter->strategy);
-                break;
-            case FilterMode::NotNull:
-                $appSqlBuilder->notNull($aliasPath, $filter->strategy);
-                break;
-            case FilterMode::LessThan:
-            case FilterMode::LessThanAlias1:
-            case FilterMode::LessThanAlias2:
-                $appSqlBuilder->lessThan($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::GreaterThan:
-            case FilterMode::GreaterThanAlias1:
-            case FilterMode::GreaterThanAlias2:
-                $appSqlBuilder->greaterThan($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::LessOrEquals:
-            case FilterMode::LessOrEqualsAlias1:
-            case FilterMode::LessOrEqualsAlias2:
-                $appSqlBuilder->lessOrEquals($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::GreaterOrEquals:
-            case FilterMode::GreaterOrEqualsAlias1:
-            case FilterMode::GreaterOrEqualsAlias2:
-                $appSqlBuilder->greaterOrEquals($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::Like:
-                $appSqlBuilder->like($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::NotLike:
-                $appSqlBuilder->notLike($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::Equals:
-            case FilterMode::EqualsAlias1:
-            case FilterMode::EqualsAlias2:
-                $appSqlBuilder->equals($aliasPath, $value, $filter->strategy);
-                break;
-            case FilterMode::NotEquals:
-            case FilterMode::NotEqualsAlias1:
-            case FilterMode::NotEqualsAlias2:
-            case FilterMode::NotEqualsAlias3:
-                $appSqlBuilder->notEquals($aliasPath, $value, $filter->strategy);
-                break;
+                return;
+            }
         }
     }
 
-    protected static function rangeDecorator(
+    private function applyComposite(
+        Filters $filters,
         FilterSqlBuilder $appSqlBuilder,
-        string $value,
-        string $field,
-        FilterStrategy $filterStrategy,
-    ): FilterSqlBuilder {
-        [$gte, $lte] = explode(',', $value);
-        if (self::isDateTime($gte) && self::isDateTime($lte)) {
-            return $appSqlBuilder->rangeDateTime($field, new DateTime($gte), new DateTime($lte), $filterStrategy);
-        }
-
-        return $appSqlBuilder->range($field, $gte, $lte, $filterStrategy);
-    }
-
-    private static function isDateTime(mixed $date): bool
-    {
-        $formats = [
-            'Y-m-d H:i:s',
-            'Y-m-d',
-        ];
-
-        foreach ($formats as $format) {
-            $d = DateTime::createFromFormat($format, $date);
-            if ($d && $d->format($format) === $date) {
-                return true;
+        string $fieldPrefix,
+        bool $isRelation,
+        FilterStrategy $strategy,
+        FilterStrategy $compositeStrategy
+    ): void {
+        $conditions = [];
+        foreach ($filters->toArray() as $filter) {
+            foreach ($this->handlers as $handler) {
+                if (!$handler instanceof CompositeConditionFilterHandlerInterface) {
+                    continue;
+                }
+                if (!$handler->supports($filter)) {
+                    continue;
+                }
+                $condition = $handler->buildCondition($filter, $appSqlBuilder, $fieldPrefix, $isRelation);
+                if (null !== $condition) {
+                    $conditions[] = $condition;
+                }
+                break;
             }
         }
 
-        return false;
+        if (empty($conditions)) {
+            return;
+        }
+
+        $condition = implode(' ' . $compositeStrategy->value . ' ', $conditions);
+        $appSqlBuilder->applyCondition("($condition)", $strategy);
     }
 }

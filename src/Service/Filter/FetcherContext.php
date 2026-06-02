@@ -24,6 +24,7 @@ class FetcherContext
     public array $entityWhiteList = [];
     public array $entityAssociationWhiteList = [];
     public string $aggregateAlias;
+    public FiltersApplicator $filtersApplicator;
 
     /**
      * FetcherContext constructor.
@@ -36,7 +37,8 @@ class FetcherContext
         string $entityClass,
         string $aggregateAlias,
         ClassMetadata $entityClassMetadata,
-        FilterSqlBuilder $filterSqlBuilder
+        FilterSqlBuilder $filterSqlBuilder,
+        FiltersApplicator $filtersApplicator
     ) {
         $this->queryBuilder = $queryBuilder;
         $this->entityClass = $entityClass;
@@ -44,6 +46,7 @@ class FetcherContext
         $this->filterSqlBuilder = $filterSqlBuilder;
         $this->entityManager = $entityManager;
         $this->aggregateAlias = $aggregateAlias;
+        $this->filtersApplicator = $filtersApplicator;
 
         $this->calcWhiteLists();
     }
@@ -186,7 +189,7 @@ class FetcherContext
 
     public function addFilters(Filters $filters, bool $withRelations = true): self
     {
-        FiltersApplicator::applyMany(
+        $this->filtersApplicator->applyMany(
             $this->fetchFiltersForEntity($filters),
             $this->filterSqlBuilder,
             $this->aggregateAlias,
@@ -209,7 +212,7 @@ class FetcherContext
                 $this->queryBuilder->distinct(true);
             }
 
-            FiltersApplicator::applyMany(
+            $this->filtersApplicator->applyMany(
                 $filtersForRelations,
                 $this->filterSqlBuilder,
                 $this->aggregateAlias,
