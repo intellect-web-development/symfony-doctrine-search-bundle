@@ -8,6 +8,7 @@ use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\DBAL\Connection;
 use IWD\SymfonyDoctrineSearch\Exception\SymfonyDoctrineSearchException;
 
 class Fetcher
@@ -80,15 +81,13 @@ class Fetcher
         $aggregateAlias = self::AGGREGATE_ALIAS;
         $idPropertyName = current($context->entityClassMetadata->identifier);
 
-        $idsPrepared = array_map(static function (string $id) {
-            return "'$id'";
-        }, $ids);
-        if (empty($idsPrepared)) {
+        if (empty($ids)) {
             return [];
         }
 
         $context->queryBuilder
-            ->andWhere("$aggregateAlias.{$idPropertyName} IN (" . implode(',', $idsPrepared) . ')');
+            ->andWhere("$aggregateAlias.{$idPropertyName} IN (:ids)")
+            ->setParameter('ids', $ids, Connection::PARAM_STR_ARRAY);
 
         if ($eager) {
             $this->addEagerQueryToRelations($context, $hints, $context->queryBuilder);

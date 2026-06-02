@@ -14,6 +14,9 @@ analyze:
 	docker compose run --rm php-fpm ./vendor/bin/psalm --no-cache $(ARGS)
 	PHP_CS_FIXER_IGNORE_ENV=1 docker compose run --rm php-fpm ./vendor/bin/php-cs-fixer fix --dry-run --diff --using-cache=no
 
+test:
+	docker compose run --rm php-fpm ./vendor/bin/phpunit --configuration phpunit.xml.dist
+
 composer-install:
 	docker compose run --rm php-fpm composer install
 
