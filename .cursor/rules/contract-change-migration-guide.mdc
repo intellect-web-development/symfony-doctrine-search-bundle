@@ -1,0 +1,19 @@
+---
+description: Require migration instructions when public contracts change
+globs: "{src/Service/QueryBus/**/*.php,src/Dto/**/*.php}"
+alwaysApply: false
+---
+
+# Contract Change Migration Guidance
+
+When refactoring files that are part of this package's public contract, always provide a migration guide for downstream projects.
+
+## Required when changing a contract
+
+- State what contract changed (class/interface/DTO field/method/signature/behavior).
+- Explain breaking impact for projects that consume this package.
+- Provide concrete "before/after" usage examples.
+- Provide a step-by-step fix checklist for consumer projects.
+- Mention any temporary compatibility layer or deprecation path, if available.
+
+If no consumer action is needed, explicitly write that the refactor is non-breaking and why.
