@@ -158,7 +158,7 @@ class FiltersMakerTest extends TestCase
         self::assertSame('26d@', $filters['email']->value);
     }
 
-    public function testFirstModeWinsWhenExpressionHasSeveralModes(): void
+    public function testSeveralModesOnOnePropertyAreAllKept(): void
     {
         $request = Request::create('/clients', 'GET', [
             'filters' => '{"email":{"like":"a@","eq":"b@"}}',
@@ -166,9 +166,13 @@ class FiltersMakerTest extends TestCase
 
         $filters = FiltersMaker::make($request)->toArray();
 
-        self::assertCount(1, $filters);
+        self::assertCount(2, $filters);
+        self::assertSame('email', $filters[0]->property);
         self::assertSame(FilterMode::Like, $filters[0]->mode);
         self::assertSame('a@', $filters[0]->value);
+        self::assertSame('email', $filters[1]->property);
+        self::assertSame(FilterMode::EqualsAlias1, $filters[1]->mode);
+        self::assertSame('b@', $filters[1]->value);
     }
 
     public function testUnknownModeFallsBackToEquals(): void
@@ -224,18 +228,22 @@ class FiltersMakerTest extends TestCase
         self::assertSame('Tesla', $filters['name']->value);
     }
 
-    public function testLegacySamePropertyWithTwoModesKeepsFirstOnly(): void
+    public function testLegacySamePropertyKeepsEveryMode(): void
     {
         $request = Request::create('/clients?filter[email][like]=a%40&filter[email][eq]=b%40&filter[name][eq]=Tesla');
 
         $filters = FiltersMaker::make($request)->toArray();
 
-        self::assertCount(2, $filters);
+        self::assertCount(3, $filters);
         self::assertSame('email', $filters[0]->property);
         self::assertSame(FilterMode::Like, $filters[0]->mode);
         self::assertSame('a@', $filters[0]->value);
-        self::assertSame('name', $filters[1]->property);
-        self::assertSame('Tesla', $filters[1]->value);
+        self::assertSame('email', $filters[1]->property);
+        self::assertSame(FilterMode::EqualsAlias1, $filters[1]->mode);
+        self::assertSame('b@', $filters[1]->value);
+        self::assertSame('name', $filters[2]->property);
+        self::assertSame(FilterMode::EqualsAlias1, $filters[2]->mode);
+        self::assertSame('Tesla', $filters[2]->value);
     }
 
     public function testAmpersandAndEqualsInsideJsonValueStayIntact(): void

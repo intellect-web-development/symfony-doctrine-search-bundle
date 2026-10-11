@@ -58,17 +58,18 @@ class FiltersMaker implements FiltersMakerInterface
                 continue;
             }
 
-            $value = self::normalizeValue(current($filterExpression));
-
-            if (!self::valueIsValid($value)) {
-                continue;
+            foreach ($filterExpression as $modeKey => $rawValue) {
+                $value = self::normalizeValue($rawValue);
+                if (!self::valueIsValid($value)) {
+                    continue;
+                }
+                $filterMode = FilterMode::tryFrom(mb_strtolower((string) $modeKey)) ?? FilterMode::Equals;
+                $filters[] = new Filter(
+                    property: (string) $property,
+                    mode: $filterMode,
+                    value: $value,
+                );
             }
-            $filterMode = FilterMode::tryFrom(mb_strtolower((string) key($filterExpression))) ?? FilterMode::Equals;
-            $filters[] = new Filter(
-                property: (string) $property,
-                mode: $filterMode,
-                value: $value,
-            );
         }
 
         return $filters;
