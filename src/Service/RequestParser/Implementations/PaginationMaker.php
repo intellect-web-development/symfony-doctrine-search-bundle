@@ -16,15 +16,13 @@ class PaginationMaker implements PaginationMakerInterface
     public static function make(Request $request): Pagination
     {
         $all = $request->query->all();
-        if (isset($all['page'])) {
-            $paginationRaw = $all['page'];
-        } else {
-            $paginationRaw = null;
+        $paginationRaw = $all['page'] ?? null;
+
+        if (is_string($paginationRaw)) {
+            $decoded = json_decode(trim($paginationRaw), true);
+            $paginationRaw = is_array($decoded) ? $decoded : null;
         }
 
-        if (!isset($paginationRaw)) {
-            return self::createDefaultPagination();
-        }
         if (!is_array($paginationRaw)) {
             return self::createDefaultPagination();
         }

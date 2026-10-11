@@ -26,6 +26,12 @@ GET /clients?filter[emails.email][like]=26d@&sort=-createdAt,updatedAt&page[numb
 sort='-createdAt,updatedAt'
 ```
 
+Компактная форма — тот же параметр `sort`, значение JSON `{поле: "asc"|"desc"}`. Порядок ключей сохраняется. Старый список `-field,other` по-прежнему читается. Если значение начинается с `{`, но JSON битый, сортировка пустая.
+
+```
+sort={"createdAt":"desc","updatedAt":"asc"}
+```
+
 ### Пагинация:
 По умолчанию пагинация задается параметром "page".
 Параметр имеет два поля - number и size.
@@ -35,6 +41,12 @@ sort='-createdAt,updatedAt'
 ```
 page[number]='1'
 page[size]='20'
+```
+
+Компактная форма — параметр `page` как JSON `{"number":1,"size":20}`. Старый `page[number]` / `page[size]` по-прежнему читается. Невалидный JSON даёт страницу по умолчанию.
+
+```
+page={"number":1,"size":20}
 ```
 
 ### Фильтрация:

@@ -13,10 +13,14 @@ class SortsMaker implements SortsMakerInterface
 {
     public static function make(Request $request): Sorts
     {
-        /** @var string $sortRaw */
         $sortRaw = $request->query->get('sort', '');
-        if (empty($sortRaw)) {
+        if (!is_string($sortRaw) || '' === trim($sortRaw)) {
             return new Sorts();
+        }
+
+        $sortRaw = trim($sortRaw);
+        if (str_starts_with($sortRaw, '{')) {
+            return self::fromCompactJson($sortRaw);
         }
 
         $sortParams = explode(
@@ -26,10 +30,38 @@ class SortsMaker implements SortsMakerInterface
 
         $sorts = [];
         foreach ($sortParams as $sortParam) {
+            if ('' === $sortParam) {
+                continue;
+            }
             $field = trim($sortParam, '-');
+            if ('' === $field) {
+                continue;
+            }
 
-            $direction = '-' === $sortParam[0] ? 'DESC' : 'ASC';
+            $direction = str_starts_with($sortParam, '-') ? 'DESC' : 'ASC';
             $sorts[] = new Sort($field, $direction);
+        }
+
+        return new Sorts($sorts);
+    }
+
+    private static function fromCompactJson(string $sortRaw): Sorts
+    {
+        $decoded = json_decode($sortRaw, true);
+        if (!is_array($decoded)) {
+            return new Sorts();
+        }
+
+        $sorts = [];
+        foreach ($decoded as $field => $direction) {
+            if (!is_string($field) || '' === $field || !is_string($direction)) {
+                continue;
+            }
+            $normalized = strtoupper($direction);
+            if (!in_array($normalized, ['ASC', 'DESC'], true)) {
+                continue;
+            }
+            $sorts[] = new Sort($field, $normalized);
         }
 
         return new Sorts($sorts);
