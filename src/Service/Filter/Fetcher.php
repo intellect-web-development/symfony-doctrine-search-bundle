@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use IWD\SymfonyDoctrineSearch\Exception\SymfonyDoctrineSearchException;
+use ReflectionClass;
 
 class Fetcher
 {
@@ -69,7 +70,11 @@ class Fetcher
         }
         $result = $context->queryBuilder->getQuery()->getResult();
         if (empty($result)) {
-            throw new SymfonyDoctrineSearchException("Entity with {$idPropertyName} '{$id}' not exist", 400);
+            $entityShortName = (new ReflectionClass($context->entityClass))->getShortName();
+            throw new SymfonyDoctrineSearchException(
+                sprintf("%s with %s '%s' does not exist", $entityShortName, $idPropertyName, $id),
+                400
+            );
         }
 
         return current($result);
