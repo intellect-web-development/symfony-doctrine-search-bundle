@@ -91,13 +91,12 @@ class FilterSqlBuilder
     public function like(string $field, mixed $value, FilterStrategy $filterStrategy = FilterStrategy::And): self
     {
         if (!empty($value)) {
-            $value = mb_strtolower($value);
-            $bind = $this->bind("%{$value}%");
+            $bind = $this->bind($this->likePattern($value));
             if (FilterStrategy::And === $filterStrategy) {
-                $this->queryBuilder->andWhere("LOWER({$field}) LIKE :{$bind}");
+                $this->queryBuilder->andWhere("LOWER({$field}) LIKE :{$bind} ESCAPE '!'");
             }
             if (FilterStrategy::Or === $filterStrategy) {
-                $this->queryBuilder->orWhere("LOWER({$field}) LIKE :{$bind}");
+                $this->queryBuilder->orWhere("LOWER({$field}) LIKE :{$bind} ESCAPE '!'");
             }
         }
 
@@ -131,13 +130,12 @@ class FilterSqlBuilder
     public function notLike(string $field, mixed $value, FilterStrategy $filterStrategy = FilterStrategy::And): self
     {
         if (!empty($value)) {
-            $value = mb_strtolower($value);
-            $bind = $this->bind("%{$value}%");
+            $bind = $this->bind($this->likePattern($value));
             if (FilterStrategy::And === $filterStrategy) {
-                $this->queryBuilder->andWhere("LOWER({$field}) NOT LIKE :{$bind}");
+                $this->queryBuilder->andWhere("LOWER({$field}) NOT LIKE :{$bind} ESCAPE '!'");
             }
             if (FilterStrategy::Or === $filterStrategy) {
-                $this->queryBuilder->orWhere("LOWER({$field}) NOT LIKE :{$bind}");
+                $this->queryBuilder->orWhere("LOWER({$field}) NOT LIKE :{$bind} ESCAPE '!'");
             }
         }
 
@@ -280,6 +278,17 @@ class FilterSqlBuilder
         );
 
         return $this;
+    }
+
+    /**
+     * Подстрока в нижнем регистре; метасимволы LIKE (`%`, `_`) и сам escape-символ `!` экранируются,
+     * чтобы пользовательский ввод искался буквально.
+     */
+    private function likePattern(mixed $value): string
+    {
+        $escaped = strtr(mb_strtolower((string) $value), ['!' => '!!', '%' => '!%', '_' => '!_']);
+
+        return "%{$escaped}%";
     }
 
     private function bind(mixed $value): string
