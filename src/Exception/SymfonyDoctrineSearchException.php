@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace IWD\SymfonyDoctrineSearch\Exception;
 
 use DomainException;
-use Throwable;
 
+/**
+ * Ошибка, вызванная данными клиента: её текст можно показать пользователю (приложения отвечают 4xx).
+ */
 class SymfonyDoctrineSearchException extends DomainException
 {
-    public function __construct(
-        string $message = '',
-        ?int $code = 500,
-        ?Throwable $previous = null
-    ) {
-        parent::__construct($message, (int) $code, $previous);
-    }
 }

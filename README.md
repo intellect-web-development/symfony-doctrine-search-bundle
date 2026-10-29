@@ -1,500 +1,187 @@
-# Symfony Presentation bundle
-## Описание:
-Данный пакет предназначен для удобной работы с уровнем представления symfony-приложений.
+# Symfony Doctrine Search Bundle
 
-## Назначение:
-- Валидация входных аргументов к методам API
-- Генерирование Swagger-документации на основе OpenApi-совместимых DTO
-- Сортировка, фильтрация и пагинация по сущностям доктрины
-- Получение ресурса/агрегата на основе сущностей доктрины
+Поиск по Doctrine-сущностям через HTTP API: фильтры, ограничения доступа, сортировка, пагинация и чтение одной сущности.
 
-## Пример использования фильтрации:
-### Пример строки запроса:
+Требования: PHP 8.4+, Doctrine ORM 3.3+, DBAL 4, Symfony 7.3 / 8.
+
+## Установка
+
+```bash
+composer require intellect-web-development/symfony-doctrine-search-bundle
+```
+
+```php
+// config/bundles.php
+IWD\SymfonyDoctrineSearch\SymfonyDoctrineSearchBundle::class => ['all' => true],
+```
+
+## Быстрый старт
+
+```php
+use IWD\SymfonyDoctrineSearch\Query\Filter;
+use IWD\SymfonyDoctrineSearch\Query\FilterOperator;
+use IWD\SymfonyDoctrineSearch\Query\SearchQuery;
+use IWD\SymfonyDoctrineSearch\Search\EntitySearch;
+
+#[Route('/api/books.{_format}', methods: ['GET'])]
+public function action(SearchQuery $searchQuery, EntitySearch $search, CurrentUser $user): Response
+{
+    // SearchQuery собирается из GET-параметров. Ограничение владельцем задаёт сервер:
+    // клиентский фильтр по тому же свойству убираем, ограничение применяется всегда.
+    $searchQuery = $searchQuery
+        ->withoutFilters('owner.id')
+        ->withConstraint(new Filter('owner.id', FilterOperator::Equals, $user->id));
+
+    $result = $search->search(Book::class, $searchQuery);
+
+    return $this->json([
+        'data' => array_map(static fn (Book $book) => new BookOutput($book), $result->entities),
+        'pagination' => $result->pagination, // {count, totalPages, page, size}
+    ]);
+}
+```
+
+Одна сущность по идентификатору — с теми же ограничениями:
+
+```php
+use IWD\SymfonyDoctrineSearch\Search\EntityReader;
+
+$book = $reader->get(Book::class, $id, [new Filter('owner.id', FilterOperator::Equals, $user->id)]);
+// не найдена или чужая → EntityNotFoundException; find() вместо get() вернёт null
+```
+
+## Фильтры и ограничения
+
+Итоговое условие запроса:
+
+```
+(ограничение₁ AND ограничение₂ …) AND (фильтр₁ <strategy> фильтр₂ …)
+```
+
+| | Фильтры (`filters`) | Ограничения (`constraints`) |
+|---|---|---|
+| Кто задаёт | клиент (GET-параметры) | сервер (`withConstraint()`, `EntityReader`) |
+| Объединение | `strategy=and` (по умолчанию) или `or` | всегда AND, на них `strategy` не влияет |
+| Неизвестное свойство | пропускается (или `InvalidSearchQueryException`, см. `reject_unknown_properties`) | `UnresolvableConstraintException` — запрос не выполняется |
+| Глубина связей | не больше `filters.max_relation_depth` | без ограничения |
+| Пустой список в `in` | фильтр не задан | ничего не найдено |
+
+Свойство — путь через связи Doctrine: `title`, `author.name`, `author.publisher.country`. Поддерживаются связи
+любого типа (в т.ч. to-many) и поля embeddable (`price.amount`). Если условию нужны связи, оно выполняется подзапросом
+`root.id IN (…)`: записи не дублируются, `count` и страницы считаются по одному и тому же набору.
+
+Значение, которое столбец не может принять (`abc` для числа, не-uuid для uuid-столбца, `like` по числу),
+не приводит к ошибке базы: такое условие ложно, а для операторов с отрицанием (`neq`, `not-in`, `not-like`) — истинно.
+
+## HTTP-параметры
+
 ```http request
-GET /clients?filter[emails.email][like]=26d@&sort=-createdAt,updatedAt&page[number]=1&page[size]=20&filter[userId][eq]=ccf92b7a-8e05-4f4b-9f0a-e4360dbacb23&filter[name.translations.last][eq]=Tesla&lang=ru
+GET /api/books?filter[title][like]=war&filter[author.name][in][]=Tolstoy&sort=-publishedAt,title&page[number]=1&page[size]=20
 ```
 
-### Сортировка:
-#### Описание:
-По умолчанию сортировка задается параметром "sort".
-Направление сортировки задается опциональным знаком '-' перед названием свойства, по которому предполагается сортировка.
-Если знак '-' присутствует, то сортировка по этому полю ведется с модификатором DESC, иначе - ASC.
-Допускается сортировка по нескольким полям агрегата. Для этого необходимо написать несколько полей, разделив их символом
-','. Чем раньше было указано поле, тем больший "вес" оно имеет при выборке.
-#### Пример:
-```
-sort='-createdAt,updatedAt'
-```
+### Фильтр: `filter[свойство][оператор]=значение`
 
-Компактная форма — тот же параметр `sort`, значение JSON `{поле: "asc"|"desc"}`. Порядок ключей сохраняется. Старый список `-field,other` по-прежнему читается. Если значение начинается с `{`, но JSON битый, сортировка пустая.
+| Оператор | Синонимы | Значение | Пример |
+|---|---|---|---|
+| `eq` | `equals`, `=` | скаляр | `filter[status][eq]=active` |
+| `neq` | `not-equals`, `!=`, `<>` | скаляр | `filter[status][neq]=blocked` |
+| `in` | | список или скаляр | `filter[status][in][]=active&filter[status][in][]=new` |
+| `not-in` | | список или скаляр | `filter[status][not-in][]=blocked` |
+| `like` | | подстрока, без учёта регистра; `%` и `_` ищутся буквально | `filter[title][like]=war` |
+| `not-like` | | то же | `filter[title][not-like]=draft` |
+| `is-null` / `not-null` | | не используется | `filter[deletedAt][is-null]=1` |
+| `lt` / `lte` | `less-than`, `<` / `less-or-equals`, `<=` | скаляр | `filter[pages][lt]=100` |
+| `gt` / `gte` | `greater-than`, `>` / `greater-or-equals`, `>=` | скаляр | `filter[pages][gte]=100` |
+| `range` | | `от,до`; любую границу можно опустить | `filter[createdAt][range]=2024-01-01,2024-12-31` |
 
-```
-sort={"createdAt":"desc","updatedAt":"asc"}
-```
+Неизвестный оператор считается `eq`. Несколько операторов на одно свойство объединяются так же, как остальные фильтры.
 
-### Пагинация:
-По умолчанию пагинация задается параметром "page".
-Параметр имеет два поля - number и size.
-- "number" указывает на номер страницы, которую запрашивает клиент. По умолчанию: 1
-- "size" указывает размер страницы(сколько агрегатов должно быть отображено). По умолчанию: 20
-#### Описание:
-```
-page[number]='1'
-page[size]='20'
-```
-
-Компактная форма — параметр `page` как JSON `{"number":1,"size":20}`. Старый `page[number]` / `page[size]` по-прежнему читается. Невалидный JSON даёт страницу по умолчанию.
+Компактная форма — параметр `filters` с JSON; значения могут быть типизированными. Для свойства, указанного в `filters`,
+фильтры из `filter[...]` игнорируются:
 
 ```
-page={"number":1,"size":20}
+filters={"title":{"like":"war"},"pages":{"gte":100},"available":{"eq":true}}
 ```
 
-### Фильтрация:
-#### Описание:
-Операторы поиска:
+### Объединение фильтров: `strategy=and|or`
 
-| Название          | Допустимые значения              | Пример                                                     | Описание                                           |
-|-------------------|----------------------------------|------------------------------------------------------------|----------------------------------------------------|
-| NOT_IN            | 'not-in'                         | filter[status][not-in][]='blocked'                         | Свойство не содержит ни одно из указанных значений |
-| IN                | 'in'                             | filter[status][in][]='active'                              | Свойство содержит одно из указанных значений       |
-| RANGE             | 'range'                          | filter[rating][range]='17,42'                              | Свойство находится в выбранном указанном диапазоне |
-| IS_NULL           | 'is-null'                        | filter[gender][is-null]                                    | Свойство равно null                                |
-| NOT_NULL          | 'not-null'                       | filter[name][not-null]                                     | Свойство не равно null                             |
-| LESS_THAN         | 'less-than', '<', 'lt'           | filter[rating][<]='94'                                     | Свойство меньше указанного значения                |
-| GREATER_THAN      | 'greater-than', '>', 'gt'        | filter[rating][>]='42'                                     | Свойство больше указанного значения                |
-| LESS_OR_EQUALS    | 'less-or-equals', '<=', 'lte'    | filter[rating][<=]='15'                                    | Свойство меньше или равно указанному значению      |
-| GREATER_OR_EQUALS | 'greater-or-equals', '>=', 'gte' | filter[rating][>=]='97'                                    | Свойство больше или равно указанному значению      |
-| LIKE              | 'like'                           | filter[email][like]='26d@'                                 | Свойство содержит часть указанного значения        |
-| NOT_LIKE          | 'not-like'                       | filter[email][not-like]='27d@'                             | Свойство не содержит часть указанного значения     |
-| EQUALS            | 'equals', '=', 'eq'              | filter[userId][eq]='ccf92b7a-8e05-4f4b-9f0a-e4360dbacb23'  | Свойство эквивалентно указанному значению          |
-| NOT_EQUALS        | 'not-equals', '!=', '<>', 'neq'  | filter[userId][neq]='aaf92b7a-8e05-4f4b-9f0a-e4360dbacb23' | Свойство не эквивалентно указанному значению       |
+По умолчанию `and`. При `or` подходит запись, удовлетворяющая хотя бы одному фильтру (и всем ограничениям).
 
-#### Пример:
+### Сортировка: `sort`
+
+`sort=-createdAt,title` — минус означает DESC. Или JSON: `sort={"createdAt":"desc","title":"asc"}`.
+Сортировать можно по полям самой сущности. Последним всегда добавляется сортировка по идентификатору, чтобы
+порядок страниц был однозначным.
+
+### Пагинация: `page`
+
+`page[number]=2&page[size]=20` или `page={"number":2,"size":20}`. Номер меньше 1 — первая страница,
+размер меньше 1 — размер по умолчанию, больше максимума — урезается до максимума.
+
+## Конфигурация
+
+Все значения необязательны и принимают `%env()%`:
+
+```yaml
+# config/packages/symfony_doctrine_search.yaml
+symfony_doctrine_search:
+    pagination:
+        default_size: 20                 # размер страницы, если клиент его не передал
+        max_size: '%env(int:SEARCH_MAX_PAGE_SIZE)%'  # по умолчанию 5000
+    filters:
+        max_relation_depth: 2            # через сколько связей клиент может фильтровать
+        reject_unknown_properties: false # true — фильтр/сортировка по неизвестному свойству даёт ошибку
+    eager_load:
+        depth: 1                         # сколько уровней связей подгружать при eager
+    query_parameters:                    # имена GET-параметров
+        filter: filter
+        compact_filter: filters
+        sort: sort
+        page: page
+        logic: strategy
 ```
-filter[userId][eq]='ccf92b7a-8e05-4f4b-9f0a-e4360dbacb23'
-filter[name.translations.last][eq]='Tesla'
-filter[emails.email][like]='26d@'
-filter[userId][eq]='ccf92b7a-8e05-4f4b-9f0a-e4360dbacb23'
-filter[name.translations.last][eq]='Tesla'
-filter[emails.email][in][]='0791d11b6a952a3804e7cb8a220d0a9b@mail.ru'
-filter[emails.email][in][]='0891d11b6a952a3804e7cb8a220d0a9b@mail.ru'
+
+## Расширение
+
+| Что заменить | Как |
+|---|---|
+| Формат GET-параметров | своя реализация `IWD\SymfonyDoctrineSearch\Http\SearchQueryFactory` + alias в `services.yaml` |
+| Источник данных / хранилище | свои реализации `Search\EntitySearch` и `Search\EntityReader` |
+
+```yaml
+# config/services.yaml
+IWD\SymfonyDoctrineSearch\Http\SearchQueryFactory: '@App\Search\MySearchQueryFactory'
 ```
 
-Компактная форма — один параметр `filters`. Значение — JSON `{свойство: {режим: значение}}`, режимы те же. Старый `filter[...]` по-прежнему читается. Если для одного свойства заданы оба варианта, берётся JSON. Число и bool в JSON приводятся к строке (`94` → `"94"`, `true` → `"1"`). Невалидный JSON игнорируется.
+## Ошибки
 
-```
-filters={"email":{"like":"26d@"},"status":{"in":["active","blocked"]},"userId":{"eq":"ccf92b7a-8e05-4f4b-9f0a-e4360dbacb23"}}
-```
+| Исключение | Когда | Что делать |
+|---|---|---|
+| `Exception\SymfonyDoctrineSearchException` | базовый класс ошибок, вызванных данными клиента | отвечать 4xx |
+| `Exception\EntityNotFoundException` | `EntityReader::get()` не нашёл сущность | наследник базового |
+| `Exception\InvalidSearchQueryException` | неизвестное свойство при `reject_unknown_properties: true` | наследник базового |
+| `Exception\UnresolvableConstraintException` | ограничение ссылается на несуществующий путь | ошибка в коде, `LogicException` → 500 |
 
-[//]: # (todo: переделать под атрибуты)
-## Примеры кода:
-### Query:
-#### Определение
-Query - запрос на получение текущего состояния сущности(ресурса/агрегата), без изменения его состояния.
+## OpenAPI
 
-#### Aggregate:
-Запрос на получение данных агрегата.
+Для документирования параметров унаследуйтесь от `OpenApi\SearchQueryParameters` и переопределите пример `filter`:
 
-#### Пример Read-action:
 ```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Http\User\Read;
-
-use App\Entity\User;
-use App\Http\User\CommonOutputContract;
-use Nelmio\ApiDocBundle\Annotation\Model;
-use Nelmio\ApiDocBundle\Annotation\Security;
-use OpenApi\Annotations as OA;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use IWD\SymfonyDoctrineSearch\Dto\Input\OutputFormat;
-use IWD\SymfonyDoctrineSearch\Dto\Output\ApiFormatter;
-use IWD\SymfonyDoctrineSearch\Service\Presenter;
-use IWD\SymfonyDoctrineSearch\Service\QueryBus\Aggregate\Bus;
-use IWD\SymfonyDoctrineSearch\Service\QueryBus\Aggregate\Query;
-
-class Action
+class QueryParams extends SearchQueryParameters
 {
-    /**
-     * @OA\Tag(name="User")
-     * @OA\Response(
-     *     response=200,
-     *     description="Read User",
-     *     @OA\JsonContent(
-     *          allOf={
-     *              @OA\Schema(ref=@Model(type=ApiFormatter::class)),
-     *              @OA\Schema(type="object",
-     *                  @OA\Property(
-     *                      property="data",
-     *                      ref=@Model(type=CommonOutputContract::class)
-     *                  ),
-     *                  @OA\Property(
-     *                      property="status",
-     *                      example="200"
-     *                 )
-     *             )
-     *         }
-     *     )
-     * )
-     * @OA\Response(
-     *     response=400,
-     *     description="Bad Request"
-     * ),
-     * @OA\Response(
-     *     response=401,
-     *     description="Unauthenticated",
-     * ),
-     * @OA\Response(
-     *     response=403,
-     *     description="Forbidden"
-     * ),
-     * @OA\Response(
-     *     response=404,
-     *     description="Resource Not Found"
-     * )
-     * @Security(name="Bearer")
-     */
-    #[Route(
-        data: '/users/{id}.{_format}',
-        name: 'users.read',
-        defaults: ['_format' => 'json'],
-        methods: ['GET']
-    )]
-    public function read(string $id, Bus $bus, OutputFormat $outputFormat, Presenter $presenter): Response
-    {
-        $query = new Query(
-            aggregateId: $id,
-            targetEntityClass: User::class
-        );
-
-        /** @var User $user */
-        $user = $bus->query($query);
-
-        return $presenter->present(
-            data: ApiFormatter::prepare(
-                CommonOutputContract::create($user)
-            ),
-            outputFormat: $outputFormat
-        );
-    }
+    #[OA\Property(property: 'filter', type: 'object', example: ['title' => ['like' => 'war']])]
+    public array $filter = [];
 }
 ```
 
-#### Пример Search-action:
-```php
-<?php
+`Result\OutputPagination` уже размечен атрибутами OpenAPI.
 
-declare(strict_types=1);
+## Разработка
 
-namespace App\Http\User\Search;
-
-use App\Entity\User;
-use App\Http\User\CommonOutputContract;
-use IWD\SymfonyDoctrineSearch\Service\Presenter;
-use Nelmio\ApiDocBundle\Annotation\Model;
-use Nelmio\ApiDocBundle\Annotation\Security;
-use OpenApi\Annotations as OA;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use IWD\SymfonyDoctrineSearch\Dto\Input\OutputFormat;
-use IWD\SymfonyDoctrineSearch\Dto\Input\SearchQuery;
-use IWD\SymfonyDoctrineSearch\Dto\Output\ApiFormatter;
-use IWD\SymfonyDoctrineSearch\Dto\Output\OutputPagination;
-use IWD\SymfonyDoctrineSearch\Service\QueryBus\Search\Bus;
-use IWD\SymfonyDoctrineSearch\Service\QueryBus\Search\Query;
-
-class Action
-{
-    /**
-     * @OA\Tag(name="User")
-     * @OA\Get(
-     *     @OA\Parameter(
-     *          name="searchQuery",
-     *          in="query",
-     *          required=false,
-     *          @OA\Schema(
-     *              ref=@Model(type=QueryParams::class)
-     *          ),
-     *     )
-     * )
-     * @OA\Response(
-     *     response=200,
-     *     description="Search by Users",
-     *     @OA\JsonContent(
-     *          allOf={
-     *              @OA\Schema(ref=@Model(type=ApiFormatter::class)),
-     *              @OA\Schema(
-     *                  type="object",
-     *                  @OA\Property(
-     *                      property="data",
-     *                      type="object",
-     *                      @OA\Property(
-     *                          property="data",
-     *                          ref=@Model(type=CommonOutputContract::class),
-     *                          type="object"
-     *                      ),
-     *                      @OA\Property(
-     *                          property="pagination",
-     *                          ref=@Model(type=OutputPagination::class),
-     *                          type="object"
-     *                      )
-     *                  ),
-     *                  @OA\Property(
-     *                      property="status",
-     *                      example="200"
-     *                 )
-     *             )
-     *         }
-     *     )
-     * )
-     * @OA\Response(
-     *     response=400,
-     *     description="Bad Request"
-     * ),
-     * @OA\Response(
-     *     response=401,
-     *     description="Unauthenticated",
-     * ),
-     * @OA\Response(
-     *     response=403,
-     *     description="Forbidden"
-     * ),
-     * @OA\Response(
-     *     response=404,
-     *     description="Resource Not Found"
-     * )
-     * @Security(name="Bearer")
-     */
-    #[Route(
-        data: '/users.{_format}',
-        name: 'users.search',
-        defaults: ['_format' => 'json'],
-        methods: ['GET']
-    )]
-    public function search(
-        Bus          $bus,
-        SearchQuery  $searchQuery,
-        OutputFormat $outputFormat,
-        Presenter    $presenter
-    ): Response {
-        $query = new Query(
-            targetEntityClass: User::class,
-            pagination: $searchQuery->pagination,
-            filters: $searchQuery->filters,
-            sorts: $searchQuery->sorts
-        );
-
-        $searchResult = $bus->query($query);
-        return $presenter->present(
-            data: ApiFormatter::prepare([
-                'data' => array_map(static function (User $user) {
-                    return CommonOutputContract::create($user);
-                }, $searchResult->entities),
-                'pagination' => $searchResult->pagination
-            ]),
-            outputFormat: $outputFormat
-        );
-    }
-}
-```
-#### Пример SearchQueryParams:
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Http\User\Search;
-
-use OpenApi\Annotations as OA;
-use IWD\SymfonyDoctrineSearch\Dto\Input\Filters;
-use IWD\SymfonyDoctrineSearch\Dto\Input\SearchQuery;
-
-class QueryParams extends SearchQuery
-{
-    /**
-     * @OA\Property(
-     *     property="filter",
-     *     type="object",
-     *     example={
-     *         "id": {"eq": "ab4ac777-e054-45ec-b997-b69062917d10"},
-     *         "createdAt": {"range": "2022-02-22 12:00:00,2022-02-22 14:00:00"},
-     *         "updatedAt": {"range": "2022-02-22 12:00:00,2022-02-22 14:00:00"},
-     *         "email": {"eq": "user@dev.ru"},
-     *         "status": {"eq": "active"}
-     *     }
-     * )
-     */
-    public Filters $filters;
-}
+```bash
+make build composer-install
+make test      # PHPUnit: unit + интеграционные тесты на SQLite
+make analyze   # phpstan (level max) + php-cs-fixer
 ```
 
-#### Пример Command-action:
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Http\User\Create;
-
-use App\Http\User\CommonOutputContract;
-use App\Entity\User\UseCase\Create\Handler;
-use IWD\SymfonyDoctrineSearch\Service\Presenter;
-use Nelmio\ApiDocBundle\Annotation\Model;
-use Nelmio\ApiDocBundle\Annotation\Security;
-use OpenApi\Annotations as OA;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use IWD\SymfonyDoctrineSearch\Dto\Input\OutputFormat;
-use IWD\SymfonyDoctrineSearch\Dto\Output\ApiFormatter;
-
-class Action
-{
-    /**
-     * @OA\Tag(name="Auth.User")
-     * @OA\Post(
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 ref=@Model(type=InputContract::class)
-     *             )
-     *         )
-     *     )
-     * )
-     * @OA\Response(
-     *     response=200,
-     *     description="Create User",
-     *     @OA\JsonContent(
-     *          allOf={
-     *              @OA\Schema(ref=@Model(type=ApiFormatter::class)),
-     *              @OA\Schema(type="object",
-     *                  @OA\Property(
-     *                      property="data",
-     *                      ref=@Model(type=CommonOutputContract::class)
-     *                  ),
-     *                  @OA\Property(
-     *                      property="status",
-     *                      example="200"
-     *                 )
-     *             )
-     *         }
-     *     )
-     * )
-     * @OA\Response(
-     *     response=400,
-     *     description="Bad Request"
-     * ),
-     * @OA\Response(
-     *     response=401,
-     *     description="Unauthenticated",
-     * ),
-     * @OA\Response(
-     *     response=403,
-     *     description="Forbidden"
-     * ),
-     * @OA\Response(
-     *     response=404,
-     *     description="Resource Not Found"
-     * )
-     * @Security(name="Bearer")
-     */
-    #[Route(
-        data: '/users/create.{_format}',
-        name: 'users.create',
-        defaults: ['_format' => 'json'],
-        methods: ['POST']
-    )]
-    public function create(
-        OutputFormat $outputFormat,
-        InputContract $contract,
-        Handler $handler,
-        Presenter $presenter
-    ): Response {
-        $user = $handler->handle(
-            $contract->createCommand()
-        );
-
-        return $presenter->present(
-            data: ApiFormatter::prepare(
-                data: CommonOutputContract::create($user),
-                messages: ['User created']
-            ),
-            outputFormat: $outputFormat
-        );
-    }
-}
-```
-
-#### Пример InputContract:
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Http\User\Create;
-
-use App\Entity\User\ValueObject\Email as UserEmail;
-use App\Entity\User\UseCase\Create\Command;
-use Symfony\Component\Validator\Constraints\Email;
-use Symfony\Component\Validator\Constraints\Length;
-use Symfony\Component\Validator\Constraints\NotNull;
-use IWD\SymfonyDoctrineSearch\Interfaces\InputContractInterface;
-
-class InputContract implements InputContractInterface
-{
-    #[NotNull]
-    #[Length(min: 3, max: 255)]
-    public string $password;
-
-    #[NotNull]
-    #[Email]
-    #[Length(max: 255)]
-    public string $email;
-
-    public function createCommand(): Command
-    {
-        return new Command(
-            password: $this->password,
-            email: new UserEmail($this->email)
-        );
-    }
-}
-```
-
-#### Пример OutputContract:
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Http\Contract\User;
-
-use App\Entity\User;
-use DateTimeInterface;
-
-class CommonOutputContract
-{
-    public string $id;
-    public string $createdAt;
-    public string $updatedAt;
-    public string $email;
-    public string $status;
-    public string $role;
-
-    public static function create(User $user): self
-    {
-        $contract = new self();
-        $contract->id = $user->getId()->getValue();
-        $contract->createdAt = $user->getCreatedAt()->format(DateTimeInterface::ATOM);
-        $contract->updatedAt = $user->getUpdatedAt()->format(DateTimeInterface::ATOM);
-        $contract->email = $user->getEmail()->getValue();
-        $contract->status = $user->getStatus();
-        $contract->role = $user->getRole()->getName();
-
-        return $contract;
-    }
-}
-```
+Переход с 1.x — [UPGRADE-2.0.md](UPGRADE-2.0.md).

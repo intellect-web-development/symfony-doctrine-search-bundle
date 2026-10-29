@@ -1,6 +1,6 @@
 {
     "name": "intellect-web-development/symfony-doctrine-search-bundle",
-    "description": "Library for searching through your doctrine entities via the HTTP API",
+    "description": "Search through Doctrine entities via the HTTP API: filters, constraints, sorting and pagination",
     "type": "symfony-bundle",
     "license": "MIT",
     "bugs": {
@@ -17,28 +17,33 @@
             "IWD\\SymfonyDoctrineSearch\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "IWD\\SymfonyDoctrineSearch\\Tests\\": "tests/"
+        }
+    },
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "ext-mbstring": "*",
-        "symfony/config": "*",
-        "symfony/dependency-injection": "*",
-        "symfony/http-kernel": "*",
-        "symfony/validator": "*",
-        "symfony/serializer": "*",
-        "intellect-web-development/symfony-entry-contract-bundle": "*",
-        "symfony-bundles/bundle-dependency": "^1.0"
+        "doctrine/dbal": "^4.0",
+        "doctrine/orm": "^3.3",
+        "doctrine/persistence": "^3.0 || ^4.0",
+        "symfony/config": "^7.3 || ^8.0",
+        "symfony/dependency-injection": "^7.3 || ^8.0",
+        "symfony/http-foundation": "^7.3 || ^8.0",
+        "symfony/http-kernel": "^7.3 || ^8.0"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.14",
-        "phpstan/phpstan": "^1.9",
-        "phpunit/phpunit": "^9.5",
-        "zircote/swagger-php": "^4.11",
-        "overtrue/phplint": "^3.0",
-        "roave/security-advisories": "dev-latest",
-        "vimeo/psalm": "^4.6",
-        "phpmetrics/phpmetrics": "^2.7",
-        "symfony/security-bundle": "^6.1",
-        "doctrine/orm": "^2.13",
-        "psalm/plugin-symfony": "^4.0"
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.0",
+        "symfony/cache": "^7.3 || ^8.0",
+        "zircote/swagger-php": "^5.0"
+    },
+    "suggest": {
+        "zircote/swagger-php": "OpenAPI attributes on OutputPagination and SearchQueryParameters"
+    },
+    "config": {
+        "sort-packages": true
     }
 }
