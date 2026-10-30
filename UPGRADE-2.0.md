@@ -222,6 +222,29 @@ class QueryParams extends SearchQueryParameters
 `symfony_doctrine_search` (см. README). Аргументы контроллера типов `Filters`, `Sorts`, `Pagination` больше не
 резолвятся — используй `SearchQuery` и его поля.
 
+### Код, который сам строит SQL из DTO бандла (скрининг, отчёты)
+
+Если сервис читает `SearchQuery` и сам собирает из него SQL, правь по таблице:
+
+| Было | Стало |
+|---|---|
+| `$searchQuery->filters->toArray()` | `$searchQuery->filters` (это `list<Filter>`) |
+| `new Filters($list)` в сигнатурах | `list<Filter>` + `@param list<Filter>` |
+| `$filter->mode` | `$filter->operator`; кейсов-синонимов нет (`GreaterThanAlias1` и т. п. убери из `switch`) |
+| `new Filter($p, $mode, $v, $strategy)` | `new Filter($p, $operator, $v)` — стратегии у фильтра больше нет |
+| `FilterStrategy` | `Query\Logic` (`And` / `Or`, значения `and` / `or` те же) |
+| `Sorts`, `$sorts->toArray()` | `list<Sort>` |
+| `$sort->getField()`, `getDirection()` (строка) | `$sort->property`, `$sort->direction` (`SortDirection`; строка — `->value`) |
+| `new Sort($f, 'DESC')` | `new Sort($f, SortDirection::Desc)` |
+| `$pagination->getPageNumber()`, `getPageSize()`, `getOffset()` | `->number`, `->size`, `->offset()`; пагинация в `SearchQuery` может быть `null` — задай размер по умолчанию сам |
+| `new Pagination(pageNumber:, pageSize:, maxSize:)` как DTO ответа | `Result\OutputPagination(count:, totalPages:, page:, size:)` |
+| значение `Range` — строка `"от,до"` | пара `[от, до]`; границы могут быть `null` (открытый диапазон) |
+| `$searchQuery->filters = new Filters($rest)` (мутация) | `$searchQuery = $searchQuery->withoutFilters('prop')` |
+| `FilterMode::from($str)` / `tryFrom` для значений из БД | `FilterOperator::fromName($str)` — `from()` знает только канонические значения и упадёт на `greater-than`, `equals` и т. п. |
+
+Если раньше при пустом списке прав ответ собирали вручную («нет доступных id — вернуть пустую страницу»), достаточно
+`withConstraint(new Filter('x.id', FilterOperator::In, []))`: пустой `In` даёт пустой результат с корректной пагинацией.
+
 ## Шаг 4. Поведение, которое изменилось (проверь, а не просто замени)
 
 1. **Ограничения больше не пропускаются молча.** В 1.x фильтр по пути глубже двух связей или через сущность с

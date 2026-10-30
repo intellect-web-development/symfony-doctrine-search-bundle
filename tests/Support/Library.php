@@ -19,15 +19,17 @@ use IWD\SymfonyDoctrineSearch\Doctrine\Path\PropertyPathResolver;
 use IWD\SymfonyDoctrineSearch\Doctrine\Value\ValueKindResolver;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Author;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Book;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Country;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Publisher;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Region;
 
 /**
- * Библиотека в SQLite в памяти:
+ * Библиотека в SQLite в памяти — две независимые цепочки «владельцев» (RU и US):
  *
- *     Publisher 1 «Alpha»  ← Author 1 Tolstoy (active)   ← Book b1 «War and Peace» 1225 стр., 1869
- *                                                        ← Book b2 «Anna Karenina» 864 стр., 1878
- *     Publisher 2 «Beta»   ← Author 2 Chekhov (inactive) ← Book b3 «The Seagull» 64 стр., 1896
- *                            Author 3 Gogol (active)     ← Book b4 «100%_Dead Souls» без страниц и даты
+ *     Country RU ← Region 1 «North» ← Publisher 1 «Alpha» ← Author 1 Tolstoy (active)   ← Book b1 «War and Peace» 1225 стр., 1869
+ *                                                                                       ← Book b2 «Anna Karenina» 864 стр., 1878
+ *     Country US ← Region 2 «West»  ← Publisher 2 «Beta»  ← Author 2 Chekhov (inactive) ← Book b3 «The Seagull» 64 стр., 1896
+ *                                     (без издателя)      ← Author 3 Gogol (active)     ← Book b4 «100%_Dead Souls» без страниц и даты
  */
 final class Library
 {
@@ -43,8 +45,12 @@ final class Library
         $em = new EntityManager(DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config), $config);
         new SchemaTool($em)->createSchema($em->getMetadataFactory()->getAllMetadata());
 
-        $alpha = new Publisher(1, 'Alpha');
-        $beta = new Publisher(2, 'Beta');
+        $russia = new Country('RU');
+        $usa = new Country('US');
+        $north = new Region(1, 'North', $russia);
+        $west = new Region(2, 'West', $usa);
+        $alpha = new Publisher(1, 'Alpha', $north);
+        $beta = new Publisher(2, 'Beta', $west);
         $tolstoy = new Author(1, 'Tolstoy', true, $alpha);
         $chekhov = new Author(2, 'Chekhov', false, $beta);
         $gogol = new Author(3, 'Gogol', true);
@@ -54,7 +60,7 @@ final class Library
             new Book(self::B3, 'The Seagull', $chekhov, 64, new DateTimeImmutable('1896-01-01')),
             new Book(self::B4, '100%_Dead Souls', $gogol),
         ];
-        foreach ([$alpha, $beta, $tolstoy, $chekhov, $gogol, ...$books] as $entity) {
+        foreach ([$russia, $usa, $north, $west, $alpha, $beta, $tolstoy, $chekhov, $gogol, ...$books] as $entity) {
             $em->persist($entity);
         }
         $em->flush();

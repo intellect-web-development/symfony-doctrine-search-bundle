@@ -14,6 +14,8 @@ class Publisher
         public int $id,
         #[ORM\Column(type: 'string')]
         public string $name,
+        #[ORM\ManyToOne(targetEntity: Region::class)]
+        public ?Region $region = null,
     ) {
     }
 }
