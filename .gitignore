@@ -4,3 +4,6 @@
 /var/myreport/
 /var/cache/
 /.php-cs-fixer.cache
+.DS_Store
+._*
+**/.DS_Store
