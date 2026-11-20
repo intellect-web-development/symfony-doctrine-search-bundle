@@ -132,7 +132,7 @@ symfony_doctrine_search:
         max_relation_depth: 2            # через сколько связей клиент может фильтровать
         reject_unknown_properties: false # true — фильтр/сортировка по неизвестному свойству даёт ошибку
     eager_load:
-        depth: 1                         # сколько уровней связей подгружать при eager
+        depth: 1                         # сколько уровней связей подгружать при eager; каждая to-many — своим SELECT
     query_parameters:                    # имена GET-параметров
         filter: filter
         compact_filter: filters

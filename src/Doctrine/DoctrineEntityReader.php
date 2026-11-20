@@ -76,6 +76,9 @@ final readonly class DoctrineEntityReader implements EntityReader
 
         /** @var T|null $entity */
         $entity = $query->getQuery()->getOneOrNullResult();
+        if ($eager && null !== $entity) {
+            $this->eagerLoader->loadCollections($em, $metadata, [$entity]);
+        }
 
         return $entity;
     }

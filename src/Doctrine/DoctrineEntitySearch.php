@@ -24,7 +24,8 @@ use Stringable;
 
 /**
  * Количество и страница считаются по одному и тому же условию. С жадной загрузкой страница берётся в два шага:
- * сначала идентификаторы с LIMIT, затем сущности со связями — иначе fetch-join to-many связей ломает LIMIT.
+ * сначала идентификаторы с LIMIT, затем сущности. To-one присоединяются к этому запросу, каждая to-many
+ * догружается своим SELECT — иначе несколько коллекций в одном JOIN дают декартово произведение и ломают LIMIT.
  */
 final readonly class DoctrineEntitySearch implements EntitySearch
 {
@@ -145,6 +146,7 @@ final readonly class DoctrineEntitySearch implements EntitySearch
 
         /** @var list<object> $entities */
         $entities = $query->getQuery()->getResult();
+        $this->eagerLoader->loadCollections($em, $metadata, $entities);
         $byId = [];
         foreach ($entities as $entity) {
             $byId[$key($metadata->getIdentifierValues($entity)[$idField])] = $entity;

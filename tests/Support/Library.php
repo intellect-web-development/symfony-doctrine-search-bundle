@@ -6,6 +6,7 @@ namespace IWD\SymfonyDoctrineSearch\Tests\Support;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\ORMSetup;
@@ -38,11 +39,18 @@ final class Library
     public const string B3 = '00000000-0000-4000-8000-000000000003';
     public const string B4 = '00000000-0000-4000-8000-000000000004';
 
-    public static function entityManager(): EntityManagerInterface
+    public static function entityManager(?SqlCollector $sql = null): EntityManagerInterface
     {
         $config = ORMSetup::createAttributeMetadataConfig([__DIR__ . '/Entity'], true);
         $config->enableNativeLazyObjects(true);
-        $em = new EntityManager(DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config), $config);
+        $connectionConfig = new \Doctrine\DBAL\Configuration();
+        if (null !== $sql) {
+            $connectionConfig->setMiddlewares([new Middleware($sql)]);
+        }
+        $em = new EntityManager(
+            DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $connectionConfig),
+            $config,
+        );
         new SchemaTool($em)->createSchema($em->getMetadataFactory()->getAllMetadata());
 
         $russia = new Country('RU');

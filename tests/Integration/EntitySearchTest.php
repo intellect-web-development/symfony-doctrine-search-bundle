@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IWD\SymfonyDoctrineSearch\Tests\Integration;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\PersistentCollection;
 use IWD\SymfonyDoctrineSearch\Doctrine\DoctrineEntitySearch;
 use IWD\SymfonyDoctrineSearch\Exception\InvalidSearchQueryException;
 use IWD\SymfonyDoctrineSearch\Exception\UnresolvableConstraintException;
@@ -17,7 +18,12 @@ use IWD\SymfonyDoctrineSearch\Query\Sort;
 use IWD\SymfonyDoctrineSearch\Query\SortDirection;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Author;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Book;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Publisher;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\Workshop;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\WorkshopProblem;
+use IWD\SymfonyDoctrineSearch\Tests\Support\Entity\WorkshopValue;
 use IWD\SymfonyDoctrineSearch\Tests\Support\Library;
+use IWD\SymfonyDoctrineSearch\Tests\Support\SqlCollector;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -157,6 +163,39 @@ final class EntitySearchTest extends TestCase
 
         self::assertSame([], $result->entities);
         self::assertSame(['count' => 4, 'totalPages' => 2, 'page' => 3, 'size' => 0], (array) $result->pagination);
+    }
+
+    public function testEagerLoadKeepsEachCollectionInItsOwnQuery(): void
+    {
+        $sql = new SqlCollector();
+        $em = Library::entityManager($sql);
+        $publisher = $em->find(Publisher::class, 1);
+        self::assertInstanceOf(Publisher::class, $publisher);
+        $workshop = new Workshop(1, 'Sandbox', $publisher);
+        $children = [];
+        foreach ([1, 2, 3] as $i) {
+            $children[] = new WorkshopProblem($i, 'Problem ' . $i, $workshop);
+            $children[] = new WorkshopValue($i, 'Value ' . $i, $workshop);
+        }
+        $em->persist($workshop);
+        foreach ($children as $child) {
+            $em->persist($child);
+        }
+        $em->flush();
+        $em->clear();
+        $sql->mark();
+
+        $found = Library::search($em)->search(Workshop::class, new SearchQuery())->entities[0];
+
+        self::assertInstanceOf(PersistentCollection::class, $found->problems);
+        self::assertInstanceOf(PersistentCollection::class, $found->values);
+        self::assertTrue($found->problems->isInitialized());
+        self::assertTrue($found->values->isInitialized());
+        self::assertCount(3, $found->problems);
+        self::assertCount(3, $found->values);
+        self::assertInstanceOf(Publisher::class, $found->publisher);
+        self::assertFalse($em->getUnitOfWork()->isUninitializedObject($found->publisher));
+        self::assertTrue($sql->keepsCollectionsApart('workshop_problem', 'workshop_value', 'publisher'));
     }
 
     public function testEagerLoadingFetchesRelations(): void
